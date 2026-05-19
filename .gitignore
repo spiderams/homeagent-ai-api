@@ -1,0 +1,10 @@
+bin/
+obj/
+
+appsettings.Development.json
+
+*.db
+
+.env
+
+.vs/

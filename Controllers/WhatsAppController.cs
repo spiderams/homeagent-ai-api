@@ -47,7 +47,7 @@ public class WhatsAppController : ControllerBase
 
             return Content(
                 response.ToString(),
-                "text/xml"
+                "application/xml"
             );
         }
         catch (Exception ex)

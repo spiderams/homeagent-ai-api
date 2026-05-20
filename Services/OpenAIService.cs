@@ -29,7 +29,7 @@ namespace RealEstateAIAssistant.Services
                 // GET API KEY
 
                 string? apiKey =
-                    _configuration["OpenAI__ApiKey"];
+                  _configuration["OpenAI:ApiKey"];
 
                 Console.WriteLine("OPENAI API KEY:");
                 Console.WriteLine(apiKey);

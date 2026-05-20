@@ -17,30 +17,43 @@ public class WhatsAppController : ControllerBase
     }
 
     [HttpPost]
+    [HttpPost]
     public async Task<IActionResult> ReceiveMessage()
     {
-        var message =
-            Request.Form["Body"];
+        try
+        {
+            var message =
+                Request.Form["Body"];
 
-        var from =
-            Request.Form["From"];
+            var from =
+                Request.Form["From"];
 
-        var aiResponse =
-            await _openAIService.AskAI(
-                from!,
-                message!
+            Console.WriteLine($"FROM: {from}");
+            Console.WriteLine($"MESSAGE: {message}");
+
+            var aiResponse =
+                await _openAIService.AskAI(
+                    from!,
+                    message!
+                );
+
+            var response =
+                new MessagingResponse();
+
+            response.Message(
+                aiResponse.Reply
             );
 
-        var response =
-            new MessagingResponse();
+            return Content(
+                response.ToString(),
+                "text/xml"
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
 
-        response.Message(
-            aiResponse.Reply
-        );
-
-        return Content(
-            response.ToString(),
-            "text/xml"
-        );
+            return BadRequest(ex.Message);
+        }
     }
 }

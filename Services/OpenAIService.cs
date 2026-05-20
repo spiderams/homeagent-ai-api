@@ -24,44 +24,66 @@ namespace RealEstateAIAssistant.Services
             string sessionId,
             string userMessage)
         {
-            string apiKey = _configuration["OpenAI:ApiKey"]!;
+            try
+            {
+                // GET API KEY
 
-            var client = new ChatClient(
-                model: "gpt-4o-mini",
-                apiKey: apiKey
-            );
+                string? apiKey =
+                    _configuration["OpenAI__ApiKey"];
 
-            // SAVE USER MESSAGE
+                Console.WriteLine("OPENAI API KEY:");
+                Console.WriteLine(apiKey);
 
-            _context.ConversationMessages.Add(
-                new ConversationMessage
+                if (string.IsNullOrEmpty(apiKey))
                 {
-                    SessionId = sessionId,
-                    Role = "user",
-                    Content = userMessage
-                });
+                    throw new Exception(
+                        "OpenAI API key missing"
+                    );
+                }
 
-            await _context.SaveChangesAsync();
+                // OPENAI CLIENT
 
-            // LOAD HISTORY
+                var client = new ChatClient(
+                    model: "gpt-4o-mini",
+                    apiKey: apiKey
+                );
 
-            var history = await _context.ConversationMessages
-                .Where(x => x.SessionId == sessionId)
-                .OrderBy(x => x.CreatedAt)
-                .Take(10)
-                .ToListAsync();
+                // SAVE USER MESSAGE
 
-            // BUILD HISTORY TEXT
+                _context.ConversationMessages.Add(
+                    new ConversationMessage
+                    {
+                        SessionId = sessionId,
+                        Role = "user",
+                        Content = userMessage,
+                        CreatedAt = DateTime.UtcNow
+                    });
 
-            string historyText = string.Join(
-                "\n",
-                history.Select(x =>
-                    $"{x.Role}: {x.Content}")
-            );
+                await _context.SaveChangesAsync();
 
-            // AI PROMPT
+                // LOAD HISTORY
 
-            string prompt = $$"""
+                var history = await _context
+                    .ConversationMessages
+                    .Where(x =>
+                        x.SessionId == sessionId)
+                    .OrderBy(x =>
+                        x.CreatedAt)
+                    .Take(10)
+                    .ToListAsync();
+
+                // BUILD HISTORY TEXT
+
+                string historyText =
+                    string.Join(
+                        "\n",
+                        history.Select(x =>
+                            $"{x.Role}: {x.Content}")
+                    );
+
+                // AI PROMPT
+
+                string prompt = $$"""
 You are an AI real estate assistant.
 
 IMPORTANT RULES:
@@ -84,14 +106,12 @@ Lead scoring rules:
 
 Conversation rules:
 
-- Use the full conversation context
+- Use full conversation context
 - Never forget previous information
-- Update information when user provides new values
-- If user says "250k", update budget to 250k
-- If user says "good view", treat it as a desired feature
-- Never ask again for information already provided
+- Update information dynamically
+- Never ask again for known info
 - Ask short and natural follow-up questions
-- Sound conversational and professional
+- Sound professional and conversational
 
 Current conversation:
 {{historyText}}
@@ -100,7 +120,6 @@ Return ONLY valid JSON.
 
 Do not use markdown.
 Do not explain anything.
-Do not write ```json.
 
 Return this exact structure:
 
@@ -109,105 +128,154 @@ Return this exact structure:
   "intent": "Buyer",
   "budget": "250k",
   "location": "Quebec",
-  "leadScore": "Cold | Warm | Hot"
+  "leadScore": "Cold"
 }
 """;
 
-            var result = await client.CompleteChatAsync(prompt);
+                // OPENAI REQUEST
 
-            string json = result.Value.Content[0].Text;
+                var result =
+                    await client.CompleteChatAsync(
+                        prompt
+                    );
 
-            Console.WriteLine("RAW AI RESPONSE:");
-            Console.WriteLine(json);
+                // RAW RESPONSE
 
-            // CLEAN JSON
+                string rawResponse =
+                    result.Value.Content[0].Text;
 
-            json = json.Replace("```json", "")
-                       .Replace("```", "")
-                       .Trim();
+                Console.WriteLine(
+                    "RAW OPENAI RESPONSE:"
+                );
 
-            Console.WriteLine("CLEAN JSON:");
-            Console.WriteLine(json);
+                Console.WriteLine(rawResponse);
 
-            // DESERIALIZE
+                // CLEAN JSON
 
-            var aiResponse = JsonSerializer.Deserialize<AIResponse>(
-                json,
-                new JsonSerializerOptions
+                string json =
+                    rawResponse
+                        .Replace("```json", "")
+                        .Replace("```", "")
+                        .Trim();
+
+                Console.WriteLine(
+                    "CLEAN JSON:"
+                );
+
+                Console.WriteLine(json);
+
+                // DESERIALIZE
+
+                AIResponse? aiResponse =
+                    JsonSerializer.Deserialize<AIResponse>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                // FALLBACK
+
+                if (aiResponse == null)
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    aiResponse = new AIResponse
+                    {
+                        Reply =
+                            "Sorry, I could not process your request.",
+                        LeadScore = "Cold"
+                    };
+                }
 
-            // FALLBACK
+                // BETTER LEAD SCORING
 
-            if (aiResponse == null)
+                string conversation =
+                    historyText.ToLower();
+
+                if (
+                    conversation.Contains("financing") ||
+                    conversation.Contains("ready to buy") ||
+                    conversation.Contains("urgent") ||
+                    conversation.Contains("this month") ||
+                    conversation.Contains("cash buyer")
+                )
+                {
+                    aiResponse.LeadScore = "Hot";
+                }
+
+                // SAVE AI MESSAGE
+
+                _context.ConversationMessages.Add(
+                    new ConversationMessage
+                    {
+                        SessionId = sessionId,
+                        Role = "assistant",
+                        Content = aiResponse.Reply,
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                // SAVE OR UPDATE LEAD
+
+                var existingLead =
+                    await _context.Leads
+                        .FirstOrDefaultAsync(x =>
+                            x.Phone == sessionId);
+
+                if (existingLead == null)
+                {
+                    var newLead = new Lead
+                    {
+                        Phone = sessionId,
+                        Intent = aiResponse.Intent,
+                        Budget = aiResponse.Budget,
+                        Location = aiResponse.Location,
+                        LeadScore = aiResponse.LeadScore,
+                        Summary = historyText,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Leads.Add(newLead);
+                }
+                else
+                {
+                    existingLead.Intent =
+                        aiResponse.Intent;
+
+                    existingLead.Budget =
+                        aiResponse.Budget;
+
+                    existingLead.Location =
+                        aiResponse.Location;
+
+                    existingLead.LeadScore =
+                        aiResponse.LeadScore;
+
+                    existingLead.Summary =
+                        historyText;
+                }
+
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine(
+                    $"AI RESPONSE: {aiResponse.Reply}"
+                );
+
+                return aiResponse;
+            }
+            catch (Exception ex)
             {
+                Console.WriteLine(
+                    "OPENAI SERVICE ERROR:"
+                );
+
+                Console.WriteLine(ex.ToString());
+
                 return new AIResponse
                 {
-                    Reply = "Sorry, I could not process the request.",
+                    Reply =
+                        "Sorry, an error occurred while processing your request.",
                     LeadScore = "Cold"
                 };
             }
-            // BETTER LEAD SCORING
-
-            // BETTER LEAD SCORING
-
-            string conversation =
-                historyText.ToLower();
-
-            if (
-                conversation.Contains("financing") ||
-                conversation.Contains("ready to buy") ||
-                conversation.Contains("urgent") ||
-                conversation.Contains("this month") ||
-                conversation.Contains("cash buyer")
-            )
-            {
-                aiResponse.LeadScore = "Hot";
-            }
-
-            // SAVE AI RESPONSE
-
-            _context.ConversationMessages.Add(
-                new ConversationMessage
-                {
-                    SessionId = sessionId,
-                    Role = "assistant",
-                    Content = aiResponse.Reply
-                });
-
-            // SAVE OR UPDATE LEAD
-
-            var existingLead = await _context.Leads
-                .FirstOrDefaultAsync(x =>
-                    x.Phone == sessionId);
-
-            if (existingLead == null)
-            {
-                var newLead = new Lead
-                {
-                    Phone = sessionId,
-                    Intent = aiResponse.Intent,
-                    Budget = aiResponse.Budget,
-                    Location = aiResponse.Location,
-                    LeadScore = aiResponse.LeadScore,
-                    Summary = historyText
-                };
-
-                _context.Leads.Add(newLead);
-            }
-            else
-            {
-                existingLead.Intent = aiResponse.Intent;
-                existingLead.Budget = aiResponse.Budget;
-                existingLead.Location = aiResponse.Location;
-                existingLead.LeadScore = aiResponse.LeadScore;
-                existingLead.Summary = historyText;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return aiResponse;
         }
     }
 }

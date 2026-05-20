@@ -44,6 +44,14 @@ public class WhatsAppController : ControllerBase
             response.Message(
                 aiResponse.Reply
             );
+            var twiml =
+$@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Response>
+    <Message>{aiResponse.Reply}</Message>
+</Response>";
+
+            Console.WriteLine("TWIML RESPONSE:");
+            Console.WriteLine(twiml);
 
             return new ContentResult
             {

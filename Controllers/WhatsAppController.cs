@@ -45,10 +45,13 @@ public class WhatsAppController : ControllerBase
                 aiResponse.Reply
             );
 
-            return Content(
-                response.ToString(),
-                "application/xml"
-            );
+            return new ContentResult
+            {
+                Content = response.ToString(),
+                ContentType = "text/xml",
+                StatusCode = 200
+            };
+
         }
         catch (Exception ex)
         {

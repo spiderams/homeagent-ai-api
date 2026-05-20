@@ -5,7 +5,7 @@ using RealEstateAIAssistant.Services;
 namespace RealEstateAIAssistant.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/whatsapp")]
 public class WhatsAppController : ControllerBase
 {
     private readonly OpenAIService _openAIService;
@@ -17,11 +17,12 @@ public class WhatsAppController : ControllerBase
     }
 
     [HttpPost]
-    [HttpPost]
     public async Task<IActionResult> ReceiveMessage()
     {
         try
         {
+            Console.WriteLine("WHATSAPP HIT");
+
             var message =
                 Request.Form["Body"];
 
@@ -51,9 +52,11 @@ public class WhatsAppController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.WriteLine(ex.ToString());
 
-            return BadRequest(ex.Message);
+            return BadRequest(
+                ex.Message
+            );
         }
     }
 }

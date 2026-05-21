@@ -55,5 +55,6 @@ namespace RealEstateAIAssistant.Controllers
 
             return Ok(messages);
         }
+
     }
 }

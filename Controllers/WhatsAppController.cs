@@ -55,7 +55,7 @@ $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 
             return new ContentResult
             {
-                Content = response.ToString(),
+                Content = twiml,
                 ContentType = "text/xml",
                 StatusCode = 200
             };

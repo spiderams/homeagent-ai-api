@@ -21,5 +21,6 @@
         public string? AppointmentDate { get; set; }
 
         public string? AppointmentTime { get; set; }
+        public string? Status { get; set; }
     }
 }

@@ -35,13 +35,15 @@ public class WhatsAppController : ControllerBase
             Console.WriteLine($"MESSAGE: {message}");
 
             var cleanFrom = from.Replace("whatsapp:", "");
+            Console.WriteLine($"CLEAN FROM: {cleanFrom}");
+            
 
             var agent = await _context.AgentProfiles
                 .FirstOrDefaultAsync(x =>
                     x.WhatsAppNumber == cleanFrom ||
                     x.WhatsAppNumber == from
                 );
-
+            Console.WriteLine($"AGENT FOUND: {agent?.UserId}");
             var userId = agent?.UserId ?? "whatsapp-unassigned";
 
             Console.WriteLine($"MAPPED USER ID: {userId}");

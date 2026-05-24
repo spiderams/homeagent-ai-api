@@ -21,6 +21,10 @@
         public string? AppointmentDate { get; set; }
 
         public string? AppointmentTime { get; set; }
-        public string? Status { get; set; }
+       
+        public string? UserId { get; set; }
+
+        public string? Status { get; set; } = "New";
+
     }
 }

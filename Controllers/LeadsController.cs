@@ -28,16 +28,7 @@ namespace RealEstateAIAssistant.Controllers
 
             return Ok(lead);
         }
-        [HttpGet]
-        public async Task<IActionResult> GetLeads()
-        {
-            var leads = await _context.Leads
-                .OrderByDescending(x => x.Id)
-                .ToListAsync();
-
-            return Ok(leads);
-        }
-
+     
         [HttpGet("{id}/messages")]
         public async Task<IActionResult> GetLeadMessages(int id)
         {

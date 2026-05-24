@@ -21,8 +21,9 @@ namespace RealEstateAIAssistant.Services
         }
 
         public async Task<AIResponse> AskAI(
-            string sessionId,
-            string userMessage)
+      string sessionId,
+      string userMessage,
+      string userId = "whatsapp-public")
         {
             try
             {
@@ -50,15 +51,15 @@ namespace RealEstateAIAssistant.Services
 
                 // SAVE USER MESSAGE
 
-                _context.ConversationMessages.Add(
-                    new ConversationMessage
-                    {
-                        SessionId = sessionId,
-                        Role = "user",
-                        Content = userMessage,
-                        CreatedAt = DateTime.UtcNow
-                    });
-
+                        _context.ConversationMessages.Add(
+            new ConversationMessage
+            {
+                SessionId = sessionId,
+                UserId = userId,
+                Role = "user",
+                Content = userMessage,
+                CreatedAt = DateTime.UtcNow
+            });
                 await _context.SaveChangesAsync();
 
                 // LOAD HISTORY
@@ -205,30 +206,33 @@ Return this exact structure:
                 // SAVE AI MESSAGE
 
                 _context.ConversationMessages.Add(
-                    new ConversationMessage
-                    {
-                        SessionId = sessionId,
-                        Role = "assistant",
-                        Content = aiResponse.Reply,
-                        CreatedAt = DateTime.UtcNow
-                    });
+      new ConversationMessage
+      {
+          SessionId = sessionId,
+          UserId = userId,
+          Role = "assistant",
+          Content = aiResponse.Reply,
+          CreatedAt = DateTime.UtcNow
+      });
 
                 // SAVE OR UPDATE LEAD
 
-                var existingLead =
-                    await _context.Leads
-                        .FirstOrDefaultAsync(x =>
-                            x.Phone == sessionId);
+                var existingLead = await _context.Leads
+    .FirstOrDefaultAsync(x =>
+        x.Phone == sessionId &&
+        x.UserId == userId);
 
                 if (existingLead == null)
                 {
                     var newLead = new Lead
                     {
                         Phone = sessionId,
+                        UserId = userId,
                         Intent = aiResponse.Intent,
                         Budget = aiResponse.Budget,
                         Location = aiResponse.Location,
                         LeadScore = aiResponse.LeadScore,
+                        Status = "New",
                         Summary = historyText,
                         CreatedAt = DateTime.UtcNow
                     };

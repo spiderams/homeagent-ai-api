@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealEstateAIAssistant.Data;
+using RealEstateAIAssistant.Dtos;
 
 namespace RealEstateAIAssistant.Controllers
 {
@@ -55,6 +56,39 @@ namespace RealEstateAIAssistant.Controllers
 
             return Ok(messages);
         }
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateStatus( int id,[FromBody] UpdateLeadStatusRequest request)
+        {
+            var lead = await _context.Leads.FindAsync(id);
 
+            if (lead == null)
+                return NotFound();
+
+            lead.Status = request.Status;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(lead);
+        }
+        [HttpGet("history/{phone}")]
+        public async Task<IActionResult> GetHistory(string phone)
+        {
+            var messages = await _context.ConversationMessages
+                .Where(x => x.SessionId == phone)
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync();
+
+            return Ok(messages);
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetLeads([FromQuery] string userId)
+        {
+            var leads = await _context.Leads
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+
+            return Ok(leads);
+        }
     }
 }

@@ -19,8 +19,10 @@ namespace RealEstateAIAssistant.Controllers
         public async Task<IActionResult> Chat([FromBody] ChatRequest request)
         {
             var aiResponse = await _openAIService.AskAI(
-     request.SessionId,
-     request.Message);
+                request.SessionId,
+                request.Message,
+                request.UserId
+            );
 
             return Ok(aiResponse);
         }

@@ -33,10 +33,11 @@ public class WhatsAppController : ControllerBase
             Console.WriteLine($"MESSAGE: {message}");
 
             var aiResponse =
-                await _openAIService.AskAI(
-                    from!,
-                    message!
-                );
+      await _openAIService.AskAI(
+          from!,
+          message!,
+          "whatsapp-agent"
+      );
 
             var response =
                 new MessagingResponse();

@@ -15,5 +15,6 @@ namespace RealEstateAIAssistant.Data
         public DbSet<ConversationState> ConversationState
 => Set<ConversationState>();
         public DbSet<Lead> Leads => Set<Lead>();
+        public DbSet<AgentProfile> AgentProfiles { get; set; }
     }
 }

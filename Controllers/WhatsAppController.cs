@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Twilio.TwiML;
 using RealEstateAIAssistant.Services;
+using RealEstateAIAssistant.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace RealEstateAIAssistant.Controllers;
 
@@ -9,11 +11,13 @@ namespace RealEstateAIAssistant.Controllers;
 public class WhatsAppController : ControllerBase
 {
     private readonly OpenAIService _openAIService;
-
+    private readonly ApplicationDbContext _context;
     public WhatsAppController(
-        OpenAIService openAIService)
+        OpenAIService openAIService, ApplicationDbContext context)
     {
         _openAIService = openAIService;
+        _context = context;
+
     }
 
     [HttpPost]

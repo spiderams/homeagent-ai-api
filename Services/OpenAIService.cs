@@ -255,6 +255,18 @@ Return this exact structure:
 
                     existingLead.Summary =
                         historyText;
+
+                    if (
+                        userMessage.ToLower().Contains("friday") ||
+                        userMessage.ToLower().Contains("tomorrow") ||
+                        userMessage.ToLower().Contains("monday") ||
+                        userMessage.ToLower().Contains("3pm")
+                    )
+                    {
+                        existingLead.AppointmentDate = userMessage;
+                        existingLead.AppointmentTime = userMessage;
+                        existingLead.Status = "Appointment";
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -281,5 +293,6 @@ Return this exact structure:
                 };
             }
         }
+
     }
 }

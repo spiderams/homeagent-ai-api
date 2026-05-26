@@ -81,5 +81,6 @@ namespace RealEstateAIAssistant.Controllers
 
             return Ok(leads);
         }
+
     }
 }
